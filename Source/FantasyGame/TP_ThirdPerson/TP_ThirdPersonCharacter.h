@@ -3,12 +3,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "FantasyGame/Public/TP_ThirdPerson/CharacterDataInterface.h"
+#include "FantasyGame/Public/TP_ThirdPerson/LookMode.h"
 #include "GameFramework/Character.h"
 #include "TP_ThirdPersonCharacter.generated.h"
 
 UCLASS(config=Game)
-class ATP_ThirdPersonCharacter : public ACharacter
+class ATP_ThirdPersonCharacter : public ACharacter, public ICharacterDataInterface
 {
+public:
+	virtual void GetCharacterInfo_Implementation(FVector& Velocity, FVector& Acceleration, FVector& MovementInputVector,
+		bool& IsMoving, bool& HasMovementInput, float& Speed, float& MovementInputAmount, FRotator& AimingRotation,
+		float& AimYawRate) override;
+
+	UPROPERTY(BlueprintReadWrite)
+	TEnumAsByte<ELookMode> lookMode;
+private:
 	GENERATED_BODY()
 
 	/** Camera boom positioning the camera behind the character */
@@ -18,6 +28,11 @@ class ATP_ThirdPersonCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	USceneComponent* LookTarget;
+
+
 public:
 	ATP_ThirdPersonCharacter();
 
@@ -25,8 +40,17 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
 	float TurnRateGamepad;
 
-protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input)
+	bool bIsAiming;
 
+	// Begin Play
+	virtual void BeginPlay() override;
+
+
+protected:
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnAim();
+	
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
 
@@ -50,6 +74,10 @@ protected:
 
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
+	
+	void ActivateAction();
+	void SetAiming(bool state);
+
 
 protected:
 	// APawn interface

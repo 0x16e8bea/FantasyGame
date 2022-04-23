@@ -36,6 +36,14 @@ ATP_ThirdPersonCharacter::ATP_ThirdPersonCharacter()
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 
+	// Create LookTarget
+	LookTarget = CreateDefaultSubobject<USceneComponent>(TEXT("LookTarget"));
+	LookTarget->SetupAttachment(RootComponent);
+	LookTarget->SetRelativeLocation(FVector(0.0f, 0.0f, 100.0f));
+	LookTarget->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f));
+	LookTarget->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+
+	
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
@@ -47,8 +55,15 @@ ATP_ThirdPersonCharacter::ATP_ThirdPersonCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+}
+
+// Begin Play
+void ATP_ThirdPersonCharacter::BeginPlay()
+{
+	Super::BeginPlay();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -61,6 +76,23 @@ void ATP_ThirdPersonCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ATP_ThirdPersonCharacter::ActivateAction);
+
+	// Lamda to set aiming true (Finput action binding)
+	FInputActionBinding AimPressed( "Aim", IE_Pressed );
+	AimPressed.ActionDelegate.GetDelegateForManualSet().BindLambda([this]() {
+		SetAiming(true);
+	});
+
+	PlayerInputComponent->AddActionBinding(AimPressed);
+
+	FInputActionBinding AimReleased( "Aim", IE_Released );
+	AimReleased.ActionDelegate.GetDelegateForManualSet().BindLambda([this]() {
+		SetAiming(false);
+	});
+
+	PlayerInputComponent->AddActionBinding(AimReleased);
+	
 	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &ATP_ThirdPersonCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right / Left", this, &ATP_ThirdPersonCharacter::MoveRight);
 
@@ -87,6 +119,30 @@ void ATP_ThirdPersonCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVect
 	StopJumping();
 }
 
+void ATP_ThirdPersonCharacter::ActivateAction()
+{
+	// Print out bang in console
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Bang"));
+}
+
+
+void ATP_ThirdPersonCharacter::SetAiming(bool bNewIsAiming)
+{
+	if (bNewIsAiming)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("LookMode: Aiming"));
+
+		lookMode = LookMode_Aiming;
+	} else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("LookMode: Normal"));
+
+		lookMode = LookMode_None;
+	}
+	
+	bIsAiming = bNewIsAiming;
+}	
+
 void ATP_ThirdPersonCharacter::TurnAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
@@ -97,6 +153,21 @@ void ATP_ThirdPersonCharacter::LookUpAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
+}
+
+void ATP_ThirdPersonCharacter::GetCharacterInfo_Implementation(FVector& Velocity, FVector& Acceleration,
+	FVector& MovementInputVector, bool& IsMoving, bool& HasMovementInput, float& Speed, float& MovementInputAmount,
+	FRotator& AimingRotation, float& AimYawRate)
+{
+	ICharacterDataInterface::GetCharacterInfo_Implementation(Velocity, Acceleration, MovementInputVector, IsMoving,
+															 HasMovementInput, Speed, MovementInputAmount,
+															 AimingRotation, AimYawRate);
+
+	// Get the aiming rotation as a forward vector relative to the character's rotation
+	AimingRotation = GetControlRotation();
+	AimYawRate = GetControlRotation().Yaw;
+	// Set the velocity of the UCharacterMovementComponent
+	Velocity = GetMovementComponent()->Velocity;
 }
 
 void ATP_ThirdPersonCharacter::MoveForward(float Value)

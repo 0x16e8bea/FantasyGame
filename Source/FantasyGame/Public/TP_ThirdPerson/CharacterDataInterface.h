@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "LookMode.h"
 #include "UObject/Interface.h"
 #include "CharacterDataInterface.generated.h"
 
@@ -12,7 +13,9 @@ class UCharacterDataInterface : public UInterface
 {
 	GENERATED_BODY()
 
-	void GetCharacterInfo();
+	void GetCharacterInfo(FVector& NormalizedLookDirection, ELookMode& LookMode, bool& HasLookTarget);
+
+	
 };
 
 /**
@@ -26,5 +29,7 @@ class FANTASYGAME_API ICharacterDataInterface
 public:
 	// Method that returns Velocity, Acceleration, Movement Input Vector, IsMoving, HasMovementInput, Speed, MovementInputAmount, Aiming Rotation, Aim Yaw Rate
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Character Data")
-	void GetCharacterInfo(FVector& Velocity, FVector& Acceleration, FVector& MovementInputVector, bool& IsMoving, bool& HasMovementInput, float& Speed, float& MovementInputAmount, FRotator& AimingRotation, float& AimYawRate);
+	void GetCharacterInfo(FVector& NormalizedLookDirection, TEnumAsByte<ELookMode>& LookMode, bool& HasLookTarget);
+	
+	// FVector& Velocity, FVector& Acceleration, FVector& MovementInputVector, bool& IsMoving, bool& HasMovementInput, float& Speed, float& MovementInputAmount, FRotator& AimingRotation, float& AimYawRate
 };

@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "LookMode.generated.h"
-
 // Unreal look mode enum
 UENUM(BlueprintType)
 enum ELookMode

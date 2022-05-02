@@ -12,12 +12,21 @@ UCLASS(config=Game)
 class ATP_ThirdPersonCharacter : public ACharacter, public ICharacterDataInterface
 {
 public:
-	virtual void GetCharacterInfo_Implementation(FVector& Velocity, FVector& Acceleration, FVector& MovementInputVector,
-		bool& IsMoving, bool& HasMovementInput, float& Speed, float& MovementInputAmount, FRotator& AimingRotation,
-		float& AimYawRate) override;
+	virtual void GetCharacterInfo_Implementation(FVector& nLD, TEnumAsByte<ELookMode>& lM, bool& hLT) override;
 
-	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<ELookMode> lookMode;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TEnumAsByte<ELookMode> LookMode;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	AActor* ActorToLookAt;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	bool LookAtTarget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	bool IsSprinting;
+
+
 private:
 	GENERATED_BODY()
 
@@ -29,9 +38,12 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	USceneComponent* LookTarget;
 
+	/** Look location */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	FVector NormalizedLookDirection;
 
 public:
 	ATP_ThirdPersonCharacter();
@@ -46,10 +58,16 @@ public:
 	// Begin Play
 	virtual void BeginPlay() override;
 
+	// Called every frame
+	virtual void Tick(float DeltaSeconds) override;
+
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnAim();
+
+	void UpdateLookLocation();
+
 	
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
@@ -77,6 +95,7 @@ protected:
 	
 	void ActivateAction();
 	void SetAiming(bool state);
+	void UpdateMovementSpeed();
 
 
 protected:
